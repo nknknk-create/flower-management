@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>花壇お世話管理</title>
+    <style>
+        :root {
+            --primary-color: #6b8e23; /* オリーブグリーン */
+            --bg-color: #f4f7f0; /* ナチュラルな薄緑 */
+            --card-bg: #ffffff;
+            --text-color: #3e4a38;
+            --accent-color: #8fbc8f; /* ダークシーグリーン */
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 400px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 2px dashed var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-top: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-label input {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .checkbox-label:hover {
+            background: #fcfdfb;
+        }
+
+        /* 選択時のスタイル */
+        .checkbox-label.checked {
+            background: #f0f7e6;
+            border-color: var(--primary-color);
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            resize: none;
+            font-size: 1rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #55721a;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #statusMessage {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* 履歴表示エリアのスタイル */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            padding: 12px;
+            background: #fafafa;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+        }
+
+        .history-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .history-actions {
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 4px;
+        }
+
+        .history-memo {
+            font-size: 0.9rem;
+            color: #666;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px dashed #eee;
+            display: inline-block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌿 花壇のお世話記録</h1>
+    
+    <form id="careForm">
+        <div class="form-group">
+            <label>今日のお世話（複数選択可）</label>
+            <div class="checkbox-group">
+                <label class="checkbox-label"><input type="checkbox" name="actions" value="水やり"> 💧 水やり</label>
+                <label class="checkbox-label"><input type="checkbox" name="actions" value="草引き"> 🌱 草引き</label>
+                <label class="checkbox-label"><input type="checkbox" name="actions" value="花柄摘み"> 🌸 花柄摘み</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="memo">ひとことメモ</label>
+            <textarea id="memo" placeholder="きれいに咲いてます、など"></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn">記録を送信する</button>
+    </form>
+
+    <div id="statusMessage"></div>
+</div>
+
+<div class="container">
+    <h2>📋 最近のお世話履歴 (最新10件)</h2>
+    <div id="historyContainer" class="history-list">
+        <div class="loading-text">履歴を読み込み中...</div>
+    </div>
+</div>
+
+<script>
+    // ⚠️ 新しくコピーした「ウェブアプリのURL」をここに貼り付けます
+    const WEB_APP_URL = "ここに_新しい_Google_GASの_URLを_貼り付ける";
+
+    // チェックボックスを選択したときに見た目をわかりやすくする処理
+    document.querySelectorAll('.checkbox-label input').forEach(input => {
+        input.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                e.target.parentElement.classList.add('checked');
+            } else {
+                e.target.parentElement.classList.remove('checked');
+            }
+        });
+    });
+
+    // 履歴をスプレッドシートから取得して表示する関数
+    async function loadHistory() {
+        const container = document.getElementById('historyContainer');
+        try {
+            const response = await fetch(WEB_APP_URL);
+            const data = await response.json();
+
+            if (data.error) {
+                container.innerHTML = `<div class="loading-text" style="color:red;">エラー: ${data.error}</div>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="loading-text">まだ履歴はありません。</div>';
+                return;
+            }
+
+            // 履歴のHTMLを組み立て
+            container.innerHTML = data.map(item => {
+                const memoHtml = item.memo ? `<div class="history-memo">💬 ${escapeHtml(item.memo)}</div>` : '';
+                const actionsHtml = item.actions ? `<div>${escapeHtml(item.actions)}</div>` : '<span style="color:#aaa; font-weight:normal;">(メモのみ)</span>';
+                return `
+                    <div class="history-item">
+                        <div class="history-meta">
+                            <span>📅 ${escapeHtml(item.date)}</span>
+                        </div>
+                        <div class="history-actions">${actionsHtml}</div>
+                        ${memoHtml}
+                    </div>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error(error);
+            container.innerHTML = '<div class="loading-text" style="color:red;">履歴の読み込みに失敗しました。</div>';
+        }
+    }
+
+    // 安全にテキストを表示するためのエスケープ関数
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // 記録の送信処理
+    document.getElementById('careForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        
+        const checkedBoxes = document.querySelectorAll('input[name="actions"]:checked');
+        const actions = Array.from(checkedBoxes).map(cb => cb.value).join(', ');
+        const memo = document.getElementById('memo').value;
+
+        if (!actions && !memo) {
+            statusMessage.style.color = "red";
+            statusMessage.innerText = "お世話内容かメモを入力してください。";
+            return;
+        }
+
+        submitBtn.disabled = true;
+        statusMessage.style.color = "#666";
+        statusMessage.innerText = "送信中...";
+
+        try {
+            // データを送信
+            await fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ actions, memo })
+            });
+
+            statusMessage.style.color = "green";
+            statusMessage.innerText = " ✅ 記録しました！";
+            
+            // フォームのリセットとスタイルのクリア
+            document.getElementById('careForm').reset();
+            document.querySelectorAll('.checkbox-label').forEach(el => el.classList.remove('checked'));
+
+            // 送信が成功したら、1.5秒後に履歴を再読み込み
+            setTimeout(loadHistory, 1500);
+
+        } catch (error) {
+            console.error(error);
+            statusMessage.style.color = "red";
+            statusMessage.innerText = "エラーが発生しました。";
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+
+    // アプリが開かれたときに自動で履歴を読み込む
+    window.addEventListener('DOMContentLoaded', loadHistory);
+</script>
+
+</body>
+</html>
