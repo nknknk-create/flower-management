@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>花壇お世話管理</title>
+    <title>学校花壇お世話管理</title>
     <style>
         :root {
             --primary-color: #6b8e23; /* オリーブグリーン */
@@ -64,6 +64,18 @@
             margin-bottom: 8px;
         }
 
+        /* 日時入力のスタイル */
+        input[type="datetime-local"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            color: var(--text-color);
+            box-sizing: border-box;
+            background-color: #fafafa;
+        }
+
         .checkbox-group {
             display: flex;
             flex-direction: column;
@@ -90,7 +102,6 @@
             background: #fcfdfb;
         }
 
-        /* 選択時のスタイル */
         .checkbox-label.checked {
             background: #f0f7e6;
             border-color: var(--primary-color);
@@ -135,7 +146,6 @@
             font-weight: bold;
         }
 
-        /* 履歴表示エリアのスタイル */
         .history-list {
             display: flex;
             flex-direction: column;
@@ -191,6 +201,11 @@
     
     <form id="careForm">
         <div class="form-group">
+            <label for="datetime">お世話した日時</label>
+            <input type="datetime-local" id="datetime" required>
+        </div>
+
+        <div class="form-group">
             <label>今日のお世話（複数選択可）</label>
             <div class="checkbox-group">
                 <label class="checkbox-label"><input type="checkbox" name="actions" value="水やり"> 💧 水やり</label>
@@ -218,10 +233,21 @@
 </div>
 
 <script>
-    // ⚠️ 新しくコピーした「ウェブアプリのURL」をここに貼り付けます
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxUYAUyfy8TLEEWW95gNfpwM2f2v5TTgXUsoR8h2rKrybQLgCYY4P7LT_H_ux6TqtUD-A/exec";
+    // ⚠️ あなたのGoogle GASウェブアプリのURLを貼り付けてください
+    const WEB_APP_URL = "ここに_Google_GASの_URLを_貼り付ける";
 
-    // チェックボックスを選択したときに見た目をわかりやすくする処理
+    // スマホの現在時刻（日本時間ベース）を「YYYY-MM-DDTHH:MM」形式で取得して入力欄にセットする関数
+    function setNowToDatetimeInput() {
+        const now = new Date();
+        // 日本時間のタイムゾーンを考慮して調整
+        const offset = now.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(now.getTime() - offset)).toISOString().slice(0, 16);
+        document.getElementById('datetime').value = localISOTime;
+    }
+
+    // アプリ起動時に現在時刻をセット
+    setNowToDatetimeInput();
+
     document.querySelectorAll('.checkbox-label input').forEach(input => {
         input.addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -232,7 +258,6 @@
         });
     });
 
-    // 履歴をスプレッドシートから取得して表示する関数
     async function loadHistory() {
         const container = document.getElementById('historyContainer');
         try {
@@ -249,7 +274,6 @@
                 return;
             }
 
-            // 履歴のHTMLを組み立て
             container.innerHTML = data.map(item => {
                 const memoHtml = item.memo ? `<div class="history-memo">💬 ${escapeHtml(item.memo)}</div>` : '';
                 const actionsHtml = item.actions ? `<div>${escapeHtml(item.actions)}</div>` : '<span style="color:#aaa; font-weight:normal;">(メモのみ)</span>';
@@ -270,19 +294,18 @@
         }
     }
 
-    // 安全にテキストを表示するためのエスケープ関数
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // 記録の送信処理
     document.getElementById('careForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const submitBtn = document.getElementById('submitBtn');
         const statusMessage = document.getElementById('statusMessage');
         
+        const datetimeInput = document.getElementById('datetime').value;
         const checkedBoxes = document.querySelectorAll('input[name="actions"]:checked');
         const actions = Array.from(checkedBoxes).map(cb => cb.value).join(', ');
         const memo = document.getElementById('memo').value;
@@ -298,22 +321,22 @@
         statusMessage.innerText = "送信中...";
 
         try {
-            // データを送信
             await fetch(WEB_APP_URL, {
                 method: "POST",
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ actions, memo })
+                body: JSON.stringify({ datetime: datetimeInput, actions, memo }) // 日時データも送信
             });
 
             statusMessage.style.color = "green";
             statusMessage.innerText = " ✅ 記録しました！";
             
-            // フォームのリセットとスタイルのクリア
             document.getElementById('careForm').reset();
             document.querySelectorAll('.checkbox-label').forEach(el => el.classList.remove('checked'));
+            
+            // 送信完了後、入力欄をふたたび現在の時刻に戻す
+            setNowToDatetimeInput();
 
-            // 送信が成功したら、1.5秒後に履歴を再読み込み
             setTimeout(loadHistory, 1500);
 
         } catch (error) {
@@ -325,7 +348,6 @@
         }
     });
 
-    // アプリが開かれたときに自動で履歴を読み込む
     window.addEventListener('DOMContentLoaded', loadHistory);
 </script>
 
